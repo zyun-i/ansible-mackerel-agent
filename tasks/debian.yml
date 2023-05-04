@@ -6,12 +6,24 @@
   when: (ansible_distribution == "Debian" and ansible_distribution_major_version|int < 8) or
         (ansible_distribution == "Ubuntu" and ansible_distribution_version|float < 16.04)
 
-- name: import mackerel GPG key v2
+- name: import mackerel GPG key v2 using apt_key
   apt_key:
     url: https://mackerel.io/file/cert/GPG-KEY-mackerel-v2
     state: present
-  when: (ansible_distribution == "Debian" and ansible_distribution_major_version|int >= 8) or
-        (ansible_distribution == "Ubuntu" and ansible_distribution_version|float >= 16.04)
+  when: (ansible_distribution == "Debian" and
+          (ansible_distribution_major_version|int >= 8 and
+           ansible_distribution_major_version|int < 10 )) or
+        (ansible_distribution == "Ubuntu" and
+          (ansible_distribution_version|float >= 16.04 and
+           ansible_distribution_version|float < 22.04 ))
+
+- name: import mackerel GPG key v2 using keyrings
+  get_url:
+    url: https://mackerel.io/file/cert/GPG-KEY-mackerel-v2
+    dest: /etc/apt/keyrings/mackerel-v2-archive-keyring.asc
+    mode: '0644'
+  when: (ansible_distribution == "Debian" and ansible_distribution_major_version|int >= 11) or
+        (ansible_distribution == "Ubuntu" and ansible_distribution_version|float >= 22.04)
 
 - name: add repository 'mackerel'
   apt_repository:
@@ -21,13 +33,25 @@
   when: (ansible_distribution == "Debian" and ansible_distribution_major_version|int < 8) or
         (ansible_distribution == "Ubuntu" and ansible_distribution_version|float < 16.04)
 
-- name: add repository 'mackerel' v2
+- name: add repository 'mackerel' v2 using apt_key
   apt_repository:
     repo: 'deb [arch=amd64,arm64] http://apt.mackerel.io/v2/ mackerel contrib'
     state: present
     update_cache: yes
-  when: (ansible_distribution == "Debian" and ansible_distribution_major_version|int >= 8) or
-        (ansible_distribution == "Ubuntu" and ansible_distribution_version|float >= 16.04)
+  when: (ansible_distribution == "Debian" and
+          (ansible_distribution_major_version|int >= 8 and
+           ansible_distribution_major_version|int < 10 )) or
+        (ansible_distribution == "Ubuntu" and
+          (ansible_distribution_version|float >= 16.04 and
+           ansible_distribution_version|float < 22.04 ))
+
+- name: add repository 'mackerel' v2 using keyrings
+  apt_repository:
+    repo: 'deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/mackerel-v2-archive-keyring.asc] http://apt.mackerel.io/v2/ mackerel contrib'
+    state: present
+    update_cache: yes
+  when: (ansible_distribution == "Debian" and ansible_distribution_major_version|int >= 11) or
+        (ansible_distribution == "Ubuntu" and ansible_distribution_version|float >= 22.04)
 
 - name: install mackerel-agent
   apt:
